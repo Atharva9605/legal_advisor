@@ -283,5 +283,6 @@ async def health_check():
     return {"status": "healthy", "message": "Legal Advisor AI is running"}
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="localhost", port=8003)
+    # Render sets a PORT environment variable
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
