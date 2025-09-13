@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Legal Advisor AI - Simple Test Client</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        textarea {
+            height: 200px;
+            resize: vertical;
+            font-family: monospace;
+        }
+
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: background 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            background: #2980b9;
+        }
+
+        button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        .status.ready {
+            background: #d5f4e6;
+            color: #27ae60;
+        }
+
+        .status.generating {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .output {
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            background: #fafafa;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .event {
+            margin: 5px 0;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border-left: 4px solid #3498db;
+            background: white;
+        }
+
+        .event-start { border-left-color: #27ae60; background: #d5f4e6; }
+        .event-stage { border-left-color: #f39c12; background: #fef9e7; }
+        .event-draft { border-left-color: #3498db; background: #ebf3fd; }
+        .event-reflection { border-left-color: #9b59b6; background: #f4ecf7; }
+        .event-search { border-left-color: #e67e22; background: #fdf2e9; }
+        .event-revision { border-left-color: #2ecc71; background: #eafaf1; }
+        .event-final { border-left-color: #27ae60; background: #d5f4e6; font-weight: bold; }
+        .event-error { border-left-color: #e74c3c; background: #fdf2f2; color: #c0392b; }
+        .event-done { border-left-color: #27ae60; background: #d5f4e6; text-align: center; font-weight: bold; }
+
+        .final-answer {
+            background: #f8f9fa;
+            border: 2px solid #27ae60;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            white-space: pre-wrap;
+            font-family: Arial, sans-serif;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚖️ Legal Advisor AI - Test Client</h1>
+        
+        <div class="input-section">
+            <label for="serverUrl">Server URL:</label>
+            <input type="text" id="serverUrl" value="http://localhost:8000">
+        </div>
+
+        <div class="input-section">
+            <label for="caseDetails">Case Details:</label>
+            <textarea id="caseDetails" placeholder="Enter detailed case information here..."></textarea>
+        </div>
+
+        <div class="controls">
+            <button onclick="generateDirective()">🚀 Generate Directive</button>
+            <button onclick="clearOutput()">🗑️ Clear Output</button>
+            <button onclick="checkHealth()">❤️ Check Server</button>
+        </div>
+
+        <div id="status" class="status ready">Ready</div>
+
+        <div id="output" class="output">
+            <div style="text-align: center; color: #6c757d; padding: 50px;">
+                <h3>Welcome to Legal Advisor AI Test Client</h3>
+                <p>Enter case details above and click "Generate Directive" to start</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isGenerating = false;
+        let finalAnswer = '';
+
+        function generateDirective() {
+            const caseDetails = document.getElementById('caseDetails').value.trim();
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            
+            if (!caseDetails) {
+                alert('Please enter case details');
+                return;
+            }
+
+            if (isGenerating) {
+                alert('Generation already in progress. Please wait...');
+                return;
+            }
+
+            startGeneration();
+
+            fetch(`${serverUrl}/generate_directive`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    case_details: caseDetails
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const reader = response.body.getReader();
+                let eventType = '';
+                
+                function readStream() {
+                    reader.read().then(({ done, value }) => {
+                        if (done) {
+                            completeGeneration();
+                            return;
+                        }
+                        
+                        const text = new TextDecoder().decode(value);
+                        const lines = text.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('event: ')) {
+                                eventType = line.substring(7);
+                            } else if (line.startsWith('data: ')) {
+                                const data = line.substring(6);
+                                if (data.trim()) {
+                                    try {
+                                        const parsed = JSON.parse(data);
+                                        handleEvent(eventType, parsed);
+                                    } catch (e) {
+                                        addEvent('info', `${eventType}: ${data}`);
+                                    }
+                                }
+                            }
+                        }
+                        
+                        readStream();
+                    });
+                }
+                
+                readStream();
+            })
+            .catch(error => {
+                addEvent('error', `Connection error: ${error.message}`);
+                completeGeneration();
+            });
+        }
+
+        function startGeneration() {
+            isGenerating = true;
+            setStatus('generating', 'Generating... <span class="spinner"></span>');
+            clearOutput();
+        }
+
+        function completeGeneration() {
+            isGenerating = false;
+            setStatus('completed', 'Generation completed successfully');
+        }
+
+        function setStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.innerHTML = message;
+        }
+
+        function handleEvent(eventType, data) {
+            switch (eventType) {
+                case 'start':
+                    addEvent('start', `🎯 Starting: ${data.message}`);
+                    break;
+                    
+                case 'stage':
+                    addEvent('stage', `📋 Stage: ${data.current} - ${data.description}`);
+                    break;
+                    
+                case 'draft_chunk':
+                    addStreamingContent('draft', data.content);
+                    break;
+                    
+                case 'reflection':
+                    addEvent('reflection', `🤔 Reflection - Missing: ${data.missing} | Superfluous: ${data.superfluous}`);
+                    break;
+                    
+                case 'search_queries':
+                    addEvent('search', `🔍 Search Queries: ${data.queries.join(', ')}`);
+                    break;
+                    
+                case 'search_executing':
+                    addEvent('search', `⏳ Searching: ${data.query}`);
+                    break;
+                    
+                case 'search_result':
+                    addEvent('search', `📊 Search Result for "${data.query}": Found results`);
+                    break;
+                    
+                case 'revision_chunk':
+                    addStreamingContent('revision', data.content);
+                    break;
+                    
+                case 'final':
+                    finalAnswer = data.answer;
+                    addEvent('final', `🏆 FINAL ANSWER (${data.iterations} iterations)`);
+                    if (data.answer) {
+                        addFinalAnswer(data.answer, data.references);
+                    }
+                    break;
+                    
+                case 'error':
+                    addEvent('error', `❌ Error: ${data.message}`);
+                    setStatus('error', 'Generation failed');
+                    break;
+                    
+                case 'done':
+                    addEvent('done', `✅ ${data.message}`);
+                    break;
+                    
+                default:
+                    addEvent('info', `📌 ${eventType}: ${JSON.stringify(data)}`);
+            }
+
+            // Auto-scroll to bottom
+            const output = document.getElementById('output');
+            output.scrollTop = output.scrollHeight;
+        }
+
+        let streamingElements = {};
+
+        function addStreamingContent(type, content) {
+            if (!streamingElements[type]) {
+                const output = document.getElementById('output');
+                const eventDiv = document.createElement('div');
+                eventDiv.className = `event event-${type}`;
+                eventDiv.id = `streaming-${type}`;
+                
+                const typeLabel = type === 'draft' ? '📝 Draft' : '✏️ Revision';
+                eventDiv.innerHTML = `<strong>${typeLabel}:</strong><br><span class="content"></span>`;
+                
+                output.appendChild(eventDiv);
+                streamingElements[type] = eventDiv.querySelector('.content');
+            }
+            
+            streamingElements[type].textContent += content;
+        }
+
+        function addEvent(type, content) {
+            const output = document.getElementById('output');
+            const eventDiv = document.createElement('div');
+            eventDiv.className = `event event-${type}`;
+            eventDiv.innerHTML = content;
+            output.appendChild(eventDiv);
+        }
+
+        function addFinalAnswer(answer, references) {
+            const output = document.getElementById('output');
+            const finalDiv = document.createElement('div');
+            finalDiv.innerHTML = `<div class="final-answer">${answer}</div>`;
+            
+            if (references && references.length > 0) {
+                const refDiv = document.createElement('div');
+                refDiv.className = 'event event-final';
+                refDiv.innerHTML = `<strong>📚 References:</strong><br>${references.map((ref, i) => `[${i+1}] ${ref}`).join('<br>')}`;
+                finalDiv.appendChild(refDiv);
+            }
+            
+            output.appendChild(finalDiv);
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+            streamingElements = {};
+            finalAnswer = '';
+        }
+
+        function checkHealth() {
+            const serverUrl = document.getElementById('serverUrl').value.trim();
+            
+            fetch(`${serverUrl}/health`)
+                .then(response => response.json())
+                .then(data => {
+                    addEvent('info', `✅ Server Health: ${data.status} - ${data.message}`);
+                })
+                .catch(error => {
+                    addEvent('error', `❌ Server Health Check Failed: ${error.message}`);
+                });
+        }
+    </script>
+</body>
+</html>
