@@ -31,7 +31,6 @@ graph.set_entry_point("draft")
 
 app = graph.compile()
 
-print(app.get_graph().draw_mermaid())
 
 response = app.invoke(
     "A Dummy Case Example: The Case of the Faulty Foundation and the Supply Chain\n\nParties Involved\n\nPlaintiff: \"Ar. Rohan Varma & Associates,\" " \
